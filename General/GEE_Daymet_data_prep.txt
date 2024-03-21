@@ -1,0 +1,645 @@
+//Function: Access Daymet V4 climate data and pre-processing 
+//Data (Variable): 
+//      daily gridded estimates of 
+//             (1)dayl (Duration of the daylight period)
+//             (2)prcp (Daily total precipitation)
+//             (3)srad (Incident shortwave radiation flux density)
+//             (4)swe (Snow water equivalent) 
+//             (5)tmax (Daily maximum 2-meter air temperature)
+//             (6)tmin (Daily minimum 2-meter air temperature)     
+//             (7)vp (Daily average partial pressure of water vapor)
+//Output:
+//    Gridded estimates (8-day, 1-km)for each variable from 1980 to 2022  
+//    Please note that 46 sets of 8-day data per year, with the last set being the average of 5 or 6 days 
+// Author: Yuan Yao
+
+var Marlon = ee.FeatureCollection("projects/ee-yaoyuan199791/assets/Marlon_extent"); // longitude and latitude ranges provided by Marlon, here I used the uploaded vector polygon. 
+var maskregion = Marlon.geometry(); // convert the format
+Map.addLayer(maskregion, {palette: '0000FF'}, 'maskregion'); // Display the polygon range in the interface
+
+var yr=1980;   // Manual adjustment of years from 1980 to 2022,here I didn't set up a loop because too much nesting slows down the operation
+var yr_1 = yr+1;
+
+var dataset = ee.ImageCollection('NASA/ORNL/DAYMET_V4') // access the daymet climate data 
+                  .filter(ee.Filter.date(yr+'-01-01', yr_1+'-01-01')); // filter each target year
+                  
+                  
+var tmax = dataset.select('tmax'); //select each variable of Daymet climate data
+var tmin = dataset.select('tmin');
+var prcp = dataset.select('prcp');
+var srad = dataset.select('srad');
+var swe = dataset.select('swe');
+var vp = dataset.select('vp');
+var dayl = dataset.select('dayl');
+
+
+
+print('tmax',tmax) // display some description of each variable
+print('tmin',tmin)
+print('prcp',prcp)
+print('srad',srad)
+print('swe',swe)
+print('vp',vp)
+print('dayl',dayl)
+
+
+
+
+//tmax/////////////////////////////////
+// Taking the tmax variable as an example, the following code deals with the last set of each year
+  var tmax_toList = tmax.toList(tmax.size());
+  var tmax_image1 = ee.Image(tmax_toList.get(360)).clip(maskregion);// the Day 361 of the year
+  var tmax_image2 = ee.Image(tmax_toList.get(361)).clip(maskregion);// the Day 362 of the year
+  var tmax_image3 = ee.Image(tmax_toList.get(362)).clip(maskregion);// the Day 363 of the year
+  var tmax_image4 = ee.Image(tmax_toList.get(363)).clip(maskregion);// the Day 364 of the year
+  var tmax_image5 = ee.Image(tmax_toList.get(364)).clip(maskregion);// the Day 365 of the year
+//  var tmax_image6 = ee.Image(tmax_toList.get(365)).clip(maskregion);// the Day 366 of the year
+  
+  var tmax_image1_collection = ee.ImageCollection(tmax_image1); // convert the format 
+  var tmax_image2_collection = ee.ImageCollection(tmax_image2);
+  var tmax_image3_collection = ee.ImageCollection(tmax_image3);
+  var tmax_image4_collection = ee.ImageCollection(tmax_image4);
+  var tmax_image5_collection = ee.ImageCollection(tmax_image5);
+//  var tmax_image6_collection = ee.ImageCollection(tmax_image6);
+
+  var tmax_mergedCollection = tmax_image1_collection.merge(tmax_image2_collection) // merge each day of the last set
+                                          .merge(tmax_image3_collection)
+                                          .merge(tmax_image4_collection)
+                                          .merge(tmax_image5_collection);
+//                                        .merge(tmax_image6_collection);
+                                          
+  var tmax_mergedCollection_mean = tmax_mergedCollection.reduce(ee.Reducer.mean()); //averaging 
+  
+    Export.image.toDrive({                   //output the last set
+        image:tmax_mergedCollection_mean,    // the image
+        description: 'tmax_'+yr+'_360',      // the image name
+        crs: 'EPSG:4326',                     // output coordinate system: WGS-84
+       region: maskregion,                    //output the specified geographic range
+        scale:1000,                           // pixel size (spatial resolution): 1km 
+       maxPixels:1e13,
+        folder:'Marlon'                
+      });
+  
+  
+  
+/*  
+//The following code processes the first 45 sets for each year
+for (var i = 0; i < 360; i=i+8) {
+  //Here I didn't set up a loop because too much nesting slows down the operation
+  var image1 = ee.Image(tmax_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(tmax_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(tmax_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(tmax_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(tmax_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(tmax_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(tmax_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(tmax_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var tmax_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                         .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var tmax_mergedCollection_mean = tmax_mergedCollection.reduce(ee.Reducer.mean());
+
+  Export.image.toDrive({
+        image:tmax_mergedCollection_mean,
+        description: 'tmax_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+*/
+/*
+//tmin/////////////////////////////////
+var tmin_toList = tmin.toList(tmin.size());
+
+  var tmin_image1 = ee.Image(tmin_toList.get(360)).clip(maskregion);
+  var tmin_image2 = ee.Image(tmin_toList.get(361)).clip(maskregion);
+  var tmin_image3 = ee.Image(tmin_toList.get(362)).clip(maskregion);
+  var tmin_image4 = ee.Image(tmin_toList.get(363)).clip(maskregion);
+  var tmin_image5 = ee.Image(tmin_toList.get(364)).clip(maskregion);
+//  var tmin_image6 = ee.Image(tmin_toList.get(365)).clip(maskregion);
+  
+  var tmin_image1_collection = ee.ImageCollection(tmin_image1);
+  var tmin_image2_collection = ee.ImageCollection(tmin_image2);
+  var tmin_image3_collection = ee.ImageCollection(tmin_image3);
+  var tmin_image4_collection = ee.ImageCollection(tmin_image4);
+  var tmin_image5_collection = ee.ImageCollection(tmin_image5);
+//  var tmin_image6_collection = ee.ImageCollection(tmin_image6);
+
+  var tmin_mergedCollection = tmin_image1_collection.merge(tmin_image2_collection)
+                                          .merge(tmin_image3_collection)
+                                          .merge(tmin_image4_collection)
+                                          .merge(tmin_image5_collection);
+//                                        .merge(tmin_image6_collection);
+                                          
+  var tmin_mergedCollection_mean = tmin_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:tmin_mergedCollection_mean,
+        description: 'tmin_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(tmin_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(tmin_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(tmin_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(tmin_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(tmin_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(tmin_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(tmin_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(tmin_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var tmin_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var tmin_mergedCollection_mean = tmin_mergedCollection.reduce(ee.Reducer.mean());
+ 
+  Export.image.toDrive({
+        image:tmin_mergedCollection_mean,
+        description: 'tmin_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+
+
+
+
+
+//prcp/////////////////////////////////
+var prcp_toList = prcp.toList(prcp.size());
+
+
+  var prcp_image1 = ee.Image(prcp_toList.get(360)).clip(maskregion);
+  var prcp_image2 = ee.Image(prcp_toList.get(361)).clip(maskregion);
+  var prcp_image3 = ee.Image(prcp_toList.get(362)).clip(maskregion);
+  var prcp_image4 = ee.Image(prcp_toList.get(363)).clip(maskregion);
+  var prcp_image5 = ee.Image(prcp_toList.get(364)).clip(maskregion);
+//  var prcp_image6 = ee.Image(prcp_toList.get(365)).clip(maskregion);
+  
+  var prcp_image1_collection = ee.ImageCollection(prcp_image1);
+  var prcp_image2_collection = ee.ImageCollection(prcp_image2);
+  var prcp_image3_collection = ee.ImageCollection(prcp_image3);
+  var prcp_image4_collection = ee.ImageCollection(prcp_image4);
+  var prcp_image5_collection = ee.ImageCollection(prcp_image5);
+//  var prcp_image6_collection = ee.ImageCollection(prcp_image6);
+
+
+  var prcp_mergedCollection = prcp_image1_collection.merge(prcp_image2_collection)
+                                          .merge(prcp_image3_collection)
+                                          .merge(prcp_image4_collection)
+                                          .merge(prcp_image5_collection);
+//                                         .merge(prcp_image6_collection);
+                                          
+  var prcp_mergedCollection_mean = prcp_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:prcp_mergedCollection_mean,
+        description: 'prcp_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(prcp_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(prcp_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(prcp_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(prcp_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(prcp_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(prcp_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(prcp_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(prcp_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var prcp_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var prcp_mergedCollection_mean = prcp_mergedCollection.reduce(ee.Reducer.mean());
+  
+  Export.image.toDrive({
+        image:prcp_mergedCollection_mean,
+        description: 'prcp_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+
+
+//srad/////////////////////////////////
+var srad_toList = srad.toList(srad.size());
+
+
+  var srad_image1 = ee.Image(srad_toList.get(360)).clip(maskregion);
+  var srad_image2 = ee.Image(srad_toList.get(361)).clip(maskregion);
+  var srad_image3 = ee.Image(srad_toList.get(362)).clip(maskregion);
+  var srad_image4 = ee.Image(srad_toList.get(363)).clip(maskregion);
+  var srad_image5 = ee.Image(srad_toList.get(364)).clip(maskregion);
+//  var srad_image6 = ee.Image(srad_toList.get(365)).clip(maskregion);
+  
+  var srad_image1_collection = ee.ImageCollection(srad_image1);
+  var srad_image2_collection = ee.ImageCollection(srad_image2);
+  var srad_image3_collection = ee.ImageCollection(srad_image3);
+  var srad_image4_collection = ee.ImageCollection(srad_image4);
+  var srad_image5_collection = ee.ImageCollection(srad_image5);
+//  var srad_image6_collection = ee.ImageCollection(srad_image6);
+
+
+  var srad_mergedCollection = srad_image1_collection.merge(srad_image2_collection)
+                                          .merge(srad_image3_collection)
+                                          .merge(srad_image4_collection)
+                                          .merge(srad_image5_collection);
+//                                        .merge(srad_image6_collection);
+                                          
+  var srad_mergedCollection_mean = srad_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:srad_mergedCollection_mean,
+        description: 'srad_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(srad_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(srad_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(srad_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(srad_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(srad_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(srad_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(srad_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(srad_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var srad_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var srad_mergedCollection_mean = srad_mergedCollection.reduce(ee.Reducer.mean());
+ 
+  Export.image.toDrive({
+        image:srad_mergedCollection_mean,
+        description: 'srad_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+
+
+//swe/////////////////////////////////
+var swe_toList = swe.toList(swe.size());
+
+
+  var swe_image1 = ee.Image(swe_toList.get(360)).clip(maskregion);
+  var swe_image2 = ee.Image(swe_toList.get(361)).clip(maskregion);
+  var swe_image3 = ee.Image(swe_toList.get(362)).clip(maskregion);
+  var swe_image4 = ee.Image(swe_toList.get(363)).clip(maskregion);
+  var swe_image5 = ee.Image(swe_toList.get(364)).clip(maskregion);
+//  var swe_image6 = ee.Image(swe_toList.get(365)).clip(maskregion);
+  
+  var swe_image1_collection = ee.ImageCollection(swe_image1);
+  var swe_image2_collection = ee.ImageCollection(swe_image2);
+  var swe_image3_collection = ee.ImageCollection(swe_image3);
+  var swe_image4_collection = ee.ImageCollection(swe_image4);
+  var swe_image5_collection = ee.ImageCollection(swe_image5);
+//  var swe_image6_collection = ee.ImageCollection(swe_image6);
+
+
+  var swe_mergedCollection = swe_image1_collection.merge(swe_image2_collection)
+                                          .merge(swe_image3_collection)
+                                          .merge(swe_image4_collection)
+                                          .merge(swe_image5_collection);
+//                                       .merge(swe_image6_collection);
+                                          
+  var swe_mergedCollection_mean = swe_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:swe_mergedCollection_mean,
+        description: 'swe_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(swe_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(swe_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(swe_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(swe_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(swe_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(swe_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(swe_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(swe_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var swe_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var swe_mergedCollection_mean = swe_mergedCollection.reduce(ee.Reducer.mean());
+  
+  Export.image.toDrive({
+        image:swe_mergedCollection_mean,
+        description: 'swe_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+
+//vp/////////////////////////////////
+var vp_toList = vp.toList(vp.size());
+
+
+  var vp_image1 = ee.Image(vp_toList.get(360)).clip(maskregion);
+  var vp_image2 = ee.Image(vp_toList.get(361)).clip(maskregion);
+  var vp_image3 = ee.Image(vp_toList.get(362)).clip(maskregion);
+  var vp_image4 = ee.Image(vp_toList.get(363)).clip(maskregion);
+  var vp_image5 = ee.Image(vp_toList.get(364)).clip(maskregion);
+//  var vp_image6 = ee.Image(vp_toList.get(365)).clip(maskregion);
+  
+  var vp_image1_collection = ee.ImageCollection(vp_image1);
+  var vp_image2_collection = ee.ImageCollection(vp_image2);
+  var vp_image3_collection = ee.ImageCollection(vp_image3);
+  var vp_image4_collection = ee.ImageCollection(vp_image4);
+  var vp_image5_collection = ee.ImageCollection(vp_image5);
+//  var vp_image6_collection = ee.ImageCollection(vp_image6);
+
+
+  var vp_mergedCollection = vp_image1_collection.merge(vp_image2_collection)
+                                          .merge(vp_image3_collection)
+                                          .merge(vp_image4_collection)
+                                          .merge(vp_image5_collection);
+//                                        .merge(vp_image6_collection);
+                                          
+  var vp_mergedCollection_mean = vp_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:vp_mergedCollection_mean,
+        description: 'vp_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(vp_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(vp_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(vp_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(vp_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(vp_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(vp_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(vp_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(vp_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var vp_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var vp_mergedCollection_mean = vp_mergedCollection.reduce(ee.Reducer.mean());
+  
+  Export.image.toDrive({
+        image:vp_mergedCollection_mean,
+        description: 'vp_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+
+
+
+
+//dayl/////////////////////////////////
+var dayl_toList = dayl.toList(dayl.size());
+
+
+  var dayl_image1 = ee.Image(dayl_toList.get(360)).clip(maskregion);
+  var dayl_image2 = ee.Image(dayl_toList.get(361)).clip(maskregion);
+  var dayl_image3 = ee.Image(dayl_toList.get(362)).clip(maskregion);
+  var dayl_image4 = ee.Image(dayl_toList.get(363)).clip(maskregion);
+  var dayl_image5 = ee.Image(dayl_toList.get(364)).clip(maskregion);
+//  var dayl_image6 = ee.Image(dayl_toList.get(365)).clip(maskregion);
+  
+  var dayl_image1_collection = ee.ImageCollection(dayl_image1);
+  var dayl_image2_collection = ee.ImageCollection(dayl_image2);
+  var dayl_image3_collection = ee.ImageCollection(dayl_image3);
+  var dayl_image4_collection = ee.ImageCollection(dayl_image4);
+  var dayl_image5_collection = ee.ImageCollection(dayl_image5);
+//var dayl_image6_collection = ee.ImageCollection(dayl_image6);
+
+  var dayl_mergedCollection = dayl_image1_collection.merge(dayl_image2_collection)
+                                          .merge(dayl_image3_collection)
+                                          .merge(dayl_image4_collection)
+                                          .merge(dayl_image5_collection);
+//                                       .merge(dayl_image6_collection);
+                                          
+  var dayl_mergedCollection_mean = dayl_mergedCollection.reduce(ee.Reducer.mean());
+  
+    Export.image.toDrive({
+        image:dayl_mergedCollection_mean,
+        description: 'dayl_'+yr+'_360',
+        crs: 'EPSG:4326',
+       region: maskregion,
+        scale:1000,
+       maxPixels:1e13,
+        folder:'Marlon'
+      });
+
+
+
+
+
+
+for (var i = 0; i < 360; i=i+8) {
+  
+  var image1 = ee.Image(dayl_toList.get(i)).clip(maskregion);
+  var image2 = ee.Image(dayl_toList.get(i+1)).clip(maskregion);
+  var image3 = ee.Image(dayl_toList.get(i+2)).clip(maskregion);
+  var image4 = ee.Image(dayl_toList.get(i+3)).clip(maskregion);
+  var image5 = ee.Image(dayl_toList.get(i+4)).clip(maskregion);
+  var image6 = ee.Image(dayl_toList.get(i+5)).clip(maskregion);
+  var image7 = ee.Image(dayl_toList.get(i+6)).clip(maskregion);
+  var image8 = ee.Image(dayl_toList.get(i+7)).clip(maskregion);
+  
+  var image1_collection = ee.ImageCollection(image1);
+  var image2_collection = ee.ImageCollection(image2);
+  var image3_collection = ee.ImageCollection(image3);
+  var image4_collection = ee.ImageCollection(image4);
+  var image5_collection = ee.ImageCollection(image5);
+  var image6_collection = ee.ImageCollection(image6);
+  var image7_collection = ee.ImageCollection(image7);
+  var image8_collection = ee.ImageCollection(image8);
+  
+  var dayl_mergedCollection = image1_collection.merge(image2_collection)
+                                          .merge(image3_collection)
+                                          .merge(image4_collection)
+                                          .merge(image5_collection)
+                                          .merge(image6_collection)
+                                          .merge(image7_collection)
+                                          .merge(image8_collection);
+                                          
+  var dayl_mergedCollection_mean = dayl_mergedCollection.reduce(ee.Reducer.mean());
+  
+  Export.image.toDrive({
+        image:dayl_mergedCollection_mean,
+        description: 'dayl_'+yr+'_'+i,
+        crs: 'EPSG:4326',
+        region: maskregion,
+        scale:1000,
+        maxPixels:1e13,
+        folder:'Marlon'
+      });
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
