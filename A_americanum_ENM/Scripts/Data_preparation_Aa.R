@@ -2,7 +2,7 @@
 # Project: RII Track-2 FEC: Marshalling Diverse Big Data Streams to Understand 
 #          Risk of Tick-Borne Diseases in the Great Plains
 # Title: Data preparation for Ecological niche modeling
-# Authors: Marlon E. Cobos, Ismari Martinez, Taylor Winters, A. Townsend Peterson
+# Authors: Marlon E. Cobos, Ismari Martinez, Taylor Winters
 # Date updated: 21/03/20234(dd/mm/yyyy)
 # Funding: NSF EPSCoR (IIA-1920946)
 ################################################################################
@@ -17,6 +17,7 @@
 #    complete set of records gathered in this project.
 # 2. Environmental data, previously prepared and downloaded using GEE is 
 #    processed (PCA) and associated with the records.
+#    - See https://github.com/marlonecobos/Tick_KSOK/blob/main/General/GEE_Daymet_data_prep.txt
 #    - Make sure the Envrionmental layers are organized as follows:
 #      - Data/Daymet/
 #        - Variable name (e.g., dayl)/
