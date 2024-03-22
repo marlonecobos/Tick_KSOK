@@ -29,7 +29,7 @@
 #install.packages("enmpa")
 
 # load packages
-library(geodata)  # it loads terra which we use in many lines
+library(geodata)  # it loads terra (important)
 library(enmpa)
 # ------------------------------------------------------------------------------
 
@@ -166,10 +166,10 @@ aals_sel_glms <- lapply(aals_glm_cal, function(x) {
 })
 
 # variable contribution
-# Relative contribution of the deviance explained
+# relative contribution of the deviance explained
 aals_var_imp <- lapply(aals_sel_glms, var_importance)
 
-x11()
+## simple plots to check
 plot_importance(aals_var_imp$Larva)
 plot_importance(aals_var_imp$Nymph)
 plot_importance(aals_var_imp$Adult)
@@ -182,10 +182,10 @@ save(aals_glm_cal, aals_sel_glms, aals_var_imp,
 # variable response curves
 plt <- lapply(aals_sel_glms, function(x) {
   x11()
-  par(mfrow = c(2, 3), mar = c(4, 4, .5, .2), cex = 0.8)
+  par(mfrow = c(2, 3), mar = c(4, 4, 0.5, 0.2), cex = 0.8)
   
   plots <- lapply(pcnam, function(y) {
-    response_curve(x, variable = y, extrapolate = TRUE, ylim = c(0, 1))
+    response_curve(fitted = x, variable = y, ylim = c(0, 1))
   })
 })
 # ------------------------------------------------------------------------------
@@ -223,10 +223,11 @@ predss <- lapply(1:length(aals_glm_cal), function(w) {
   ## predictions per week
   pred_yweeks <- lapply(1:length(pcsss), function(x) {
     ### Weighted average based on AIC weights (wAIC)
-    c_wmean <- waver(pcsss[x], aals_glm_cal[[w]])
+    c_wmean <- predict_selected(fitted = aals_glm_cal[[w]], 
+                                newdata = rast(pcsss[x]), consensus = TRUE)
     
     ### write
-    writeRaster(c_wmean, pred_name[x])
+    writeRaster(c_wmean$consensus$Weighted_average, pred_name[x])
     
     message(x, " of ", length(pcsss))
   })
@@ -266,7 +267,7 @@ predss <- lapply(1:length(aals_glm_cal), function(w) {
   
   # monthly averages
   ## years and days to be considered in names
-  years <- 1980:2022
+  years <- 2020:2022
   wda <- seq(0, 364, 8)
   
   ## days in months
@@ -330,57 +331,6 @@ predss <- lapply(1:length(aals_glm_cal), function(w) {
     })
     
     message(x)
-  })
-  
-  
-  # normal monthly averages for every 10 years
-  ## new directory
-  mndir <- paste0(sppdir[w], "_monthly_normals")
-  dir.create(mndir)
-  
-  ## decades to consider
-  decs <- seq(1980, 2020, 10)
-  
-  ## average calculation in loo
-  norms <- lapply(1:(length(decs) - 1), function(x) {
-    mres <- lapply(1:12, function(y) {
-      ### file names for averaging
-      filesm <- paste0(mondir, sppwrt[w], decs[x]:(decs[x + 1] - 1), 
-                       "_", y, ".tif")
-      
-      ### new file name
-      avname <- paste0(mndir, sppwrt[w], decs[x], "s_", y, 
-                       "_normal.tif")
-      
-      ### average and writing
-      app(rast(filesm), mean, filename = avname)
-    })
-    
-    message(x, " of ", (length(decs) - 1))
-  })
-  
-  
-  # normal monthly standard deviations for every 10 years
-  ## new directory
-  mndirsd <- paste0(sppdir[w], "_monthly_normals_SD")
-  dir.create(mndirsd)
-  
-  ## average calculation in loo
-  normssd <- lapply(1:(length(decs) - 1), function(x) {
-    mres <- lapply(1:12, function(y) {
-      ### file names for averaging
-      filesm <- paste0(mondir, sppwrt[w], decs[x]:(decs[x + 1] - 1), 
-                       "_", y, ".tif")
-      
-      ### new file name
-      sdname <- paste0(mndirsd, sppwrt[w], decs[x], "s_", y, 
-                       "_normal_SD.tif")
-      
-      ### average and writing
-      app(rast(filesm), sd, filename = sdname)
-    })
-    
-    message(x, " of ", (length(decs) - 1))
   })
 })
 # ------------------------------------------------------------------------------
