@@ -10,6 +10,6 @@ Contact: manubio13@gmail.com
 
 Distinct parts of this project and scripts associated to them are separated in sub folders. Details on each of these parts can be found below:
 
-- General information related to the project (Code, scripts, data, etc.) <a href="https://github.com/marlonecobos/Tick_KSOK/tree/main/General" target="_blank">Link</a> 
+- General information related to the project (scripts, data, etc.) <a href="https://github.com/marlonecobos/Tick_KSOK/tree/main/General" target="_blank">Link</a> 
 - Spatio-temporal patterns of *Amblyomma americanum* questing activity <a href="https://github.com/marlonecobos/Tick_KSOK/tree/main/A_americanum_ENM" target="_blank">Link</a>  
 
