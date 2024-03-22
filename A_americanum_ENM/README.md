@@ -16,7 +16,9 @@ In process...
 
 ### Description
 
-This repository contains the following:
+Note: The environmental raster layers used in data preparation analyses, was downloaded and prepared using Google Earth Engine. You can find the GEE script in this <a href="https://github.com/marlonecobos/Tick_KSOK/blob/main/General/GEE_Daymet_data_prep.txt" target="_blank">Link</a> 
+
+This repository sub folder contains the following:
 
 - <a href="https://github.com/marlonecobos/Tick_KSOK/tree/main/A_americanum_ENM/Data" target="_blank">Data</a>  
   - Tick records collected in the entire project (focused in *A. americanum*; a CSV file) <a href="https://github.com/marlonecobos/Tick_KSOK/blob/main/A_americanum_ENM/Data/KS_OK_tickdata_Aa.csv" target="_blank">Link</a> 
