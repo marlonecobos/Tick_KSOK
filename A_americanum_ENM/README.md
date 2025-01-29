@@ -1,8 +1,8 @@
 ## Spatiotemporal dynamics of A. americanum questing activity
 
-This repository serves to store R scripts to reproduce analyses and figures presented in the manuscript **"Modeling spatiotemporal dynamics of Amblyomma americanum questing activity in the Central Great Plains."**
+This repository serves to store R scripts to reproduce analyses and figures presented in the manuscript **"Modeling spatiotemporal dynamics of *Amblyomma americanum* questing activity in the Central Great Plains."**
 
-Authors: Marlon E. Cobos*, Taylor Winters, Ismari Martinez, Yuan Yao, Xiangming Xiao, ???  A. Townsend Peterson
+Authors: Marlon E. Cobos*, Taylor Winters,Ismari Martinez,Yuan Yao,Xiangming Xiao,Anuradha Ghosh,Kellee Sundstrom,Kathryn Duncan,Robert E. Brennan,Susan E. Little,A. Townsend Peterson
 
 Contact: manubio13@gmail.com
 
@@ -10,7 +10,7 @@ Contact: manubio13@gmail.com
 
 ### Citation
 
-In process...
+Cobos ME, Winters T, Martinez I, Yao Y, Xiao X, Ghosh A, Sundstrom K, Duncan K, Brennan RE, Little SE, Peterson AT (2024) Modeling spatiotemporal dynamics of *Amblyomma americanum* questing activity in the central Great Plains. PLoS ONE 19(10): e0304427. https://doi.org/10.1371/journal.pone.0304427
 
 <br>
 
